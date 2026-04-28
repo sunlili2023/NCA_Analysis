@@ -80,7 +80,7 @@ for (task in analysis_tasks) {
     data = df,
     x = task$x,
     y = task$y,
-    ceilings = c('CE_FDH', 'CR_FDH', 'ols'),
+    ceilings = c( 'ols', 'CE_FDH', 'CR_FDH'),
     test.rep = 10000 
   )
   
