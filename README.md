@@ -8,21 +8,25 @@ This repository contains the data and R code required to reproduce the Necessary
 * **NCA_Analysis.Rproj**: RProject file to handle working directories automatically.
 
 ##  Reproduction Steps
-1.  **Software**: Ensure you have R (>= 4.0.0) installed.
-2.  **Dependencies**: The script will automatically install `dplyr` and `NCA` packages if they are missing.
+1. **Software**: Ensure you have R (>= 4.0.0) installed.
+2. **Dependencies**: The script will automatically install `dplyr` and `NCA` packages if they are missing.
 3. **Execution**: 
     * Open the **`.Rproj`** file in RStudio (this automatically sets the correct working directory).
     * Open and run `NCA_Analysis.R`.
-4.  **Outputs**: 
+4. **Performance Note (IMPORTANT)**: 
+   - The script uses `test.rep = 10000` to ensure statistical stringency (stable p-values) and `res = 1200` for publication-quality TIFFs.
+   - **Execution is computationally intensive.** Depending on your CPU, it may take **5 to 15 minutes** to complete all 8 panels. 
+   - Please do not close RStudio until the "All NCA analysis tasks completed successfully!" message appears in the console.
+5. **Outputs**: 
     * The script calculates sum scores for latent variables based on the column prefixes (PN, PC, TI, PCE, Age).
     * It performs 10,000 permutations for p-value calculation.
     * High-resolution TIFF plots (1200 DPI) and summary text files will be generated in a new `/OUTPUT` folder.
 
-##  Technical Requirements
+## Technical Requirements
 The input CSV must follow the naming convention used in the script (refer to the **Measures** section in the manuscript for variable mapping):
 * Prefixes: `PN`, `PC`, `TI`, `PCE`, `Age`.
 
-##  License
+## License
 This project is licensed under the MIT License.
 
 ##  Contact
