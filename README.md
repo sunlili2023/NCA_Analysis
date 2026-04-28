@@ -1,4 +1,4 @@
-# NCA_Analysis for Perceived Naturalness Study
+# NCA_Analysis for Study
 
 This repository contains the data and R code required to reproduce the Necessary Condition Analysis (NCA) results presented in the manuscript.
 
