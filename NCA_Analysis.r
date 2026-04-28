@@ -85,7 +85,7 @@ for (task in analysis_tasks) {
   setwd(file.path(original_wd, output_dir))
   
   # Export text summary
-  sink(paste0("Summary_Fig5", task$id, ".txt"))
+  sink(paste0("Summary_Tab12", task$id, ".txt"))
   nca_output(model, summaries = TRUE)
   sink()
   
@@ -110,7 +110,7 @@ for (task in analysis_tasks) {
     
     # Save formatted CSV
     write.csv(bn_rounded, 
-              paste0("Bottleneck_Fig5", task$id, "_", line_name, ".csv"), 
+              paste0("Bottleneck_Tab1314", task$id, "_", line_name, ".csv"), 
               row.names = FALSE)
   }
   
