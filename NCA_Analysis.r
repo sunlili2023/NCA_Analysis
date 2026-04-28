@@ -106,7 +106,8 @@ for (task in analysis_tasks) {
     xlab = task$label,
     ylab = y_label_mapping[[task$y]],
     main = paste0("Scatter Plot 5", task$id),
-    font.lab = 2
+    font.lab = 2,
+    add.on = "ols"
   )
   
   dev.off()
