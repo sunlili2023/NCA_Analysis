@@ -1,8 +1,8 @@
 # ==============================================================================
-# Script Name: NCA_Analysis.R
+# Script Name: NCA_Analysis_Final.R
 # Project: Perceived Naturalness and Consumer Cognitive Engagement
 # Purpose: Perform NCA for PCE and TI, exporting 1200 DPI TIFF plots (A-H)
-#          and formatted bottleneck tables with 2-decimal precision.
+#          and formatted bottleneck tables with 2-decimal precision (NN-safe).
 # ==============================================================================
 
 # ==============================================================================
@@ -14,13 +14,16 @@ if (!require("NCA")) install.packages("NCA")
 library(NCA)
 library(dplyr)
 
+# Set seed for reproducibility of permutation tests
 set.seed(123)
 
 input_file <- "DATA/latent_variable_scores.csv"
 output_dir <- "OUTPUT"
 
+# Create output directory if it does not exist
 if (!dir.exists(output_dir)) dir.create(output_dir)
 
+# Load Dataset
 if (!file.exists(input_file)) {
   stop("Input file not found! Please ensure 'latent_variable_scores.csv' is in the DATA/ folder.")
 }
@@ -43,21 +46,21 @@ y_label_mapping <- list(
   "PCE" = "Product-related Cognitive Engagement"
 )
 
-# ==============================================================================
-# 2. Execution & Export
-# ==============================================================================
+# Store the original working directory
 original_wd <- getwd()
 
+# ==============================================================================
+# 2. Execution & Export Loop
+# ==============================================================================
 for (task in analysis_tasks) {
   message(sprintf("Processing Panel %s: %s -> %s", task$id, task$x, task$y))
   
-  # 1. Perform NCA Analysis
-  # Includes 10,000 permutations for significance testing
+  # 1. Perform NCA Analysis (Includes 10,000 permutations)
   model <- nca_analysis(my_data, task$x, task$y, 
                         ceilings = c('ols', 'ce_fdh', 'cr_fdh'), 
                         test.rep = 10000)
   
-  # 2. Export TIFF Plot (1200 DPI)
+  # 2. Export High-Resolution TIFF Plot (1200 DPI)
   plot_file <- file.path(original_wd, output_dir, paste0("Fig5", task$id, "_", task$x, "_", task$y, ".tiff"))
   
   tiff(
@@ -76,32 +79,46 @@ for (task in analysis_tasks) {
   )
   
   dev.off()
-  # ==============================================================================
-  # 3. Export Bottleneck Tables (Rounded to 2 decimals)
-  # ==============================================================================
-  # Switch to OUTPUT to use nca_output for summaries
+  
+  # 3. Export Summary and Formatted Bottleneck Tables
+  # Switch to OUTPUT folder temporarily
   setwd(file.path(original_wd, output_dir))
   
-  # Export the general summary text file for this task
+  # Export text summary
   sink(paste0("Summary_Fig5", task$id, ".txt"))
   nca_output(model, summaries = TRUE)
   sink()
   
-  # Process and save rounded Bottleneck CSVs
+  # Process Bottleneck Tables (Rounding while handling "nn" values)
   bn_list <- model$bottlenecks
   for(line_name in names(bn_list)) {
     bn_rounded <- as.data.frame(bn_list[[line_name]])
-    bn_rounded[,-1] <- round(bn_rounded[,-1], 2)
+    
+    # Loop through value columns (skipping the first column which is %)
+    for(col_idx in 2:ncol(bn_rounded)) {
+      # Suppress warnings when "nn" converts to NA
+      suppressWarnings({
+        # Force conversion to numeric to allow rounding
+        numeric_vals <- as.numeric(as.character(bn_rounded[, col_idx]))
+        # Round numeric values and put them back
+        bn_rounded[, col_idx] <- round(numeric_vals, 2)
+      })
+    }
+    
+    # Re-insert "nn" into NA spots to maintain the original NCA reporting style
+    bn_rounded[is.na(bn_rounded)] <- "nn"
+    
+    # Save formatted CSV
     write.csv(bn_rounded, 
               paste0("Bottleneck_Fig5", task$id, "_", line_name, ".csv"), 
               row.names = FALSE)
   }
   
-  # Reset path for next iteration
+  # Return to root directory for next task
   setwd(original_wd)
 }
 
 message("================================================================")
-message("Analysis Complete!")
-message("TIFF plots (1200 DPI) and formatted tables saved in: ", output_dir)
+message("All NCA analysis tasks completed successfully!")
+message("Results (TIFFs, Summaries, CSVs) saved in: ", output_dir)
 message("================================================================")
