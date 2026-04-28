@@ -5,11 +5,14 @@ This repository contains the data and R code required to reproduce the Necessary
 ##  Repository Structure
 * **NCA_Analysis.R**: The main script for data processing, statistical testing, and figure generation.
 * **DATA/**: Directory containing `latent_variable_scores.csv`.
+* **NCA_Analysis.Rproj**: RProject file to handle working directories automatically.
 
 ##  Reproduction Steps
 1.  **Software**: Ensure you have R (>= 4.0.0) installed.
 2.  **Dependencies**: The script will automatically install `dplyr` and `NCA` packages if they are missing.
-3.  **Execution**: Run the `NCA_Analysis.R` script. 
+3. **Execution**: 
+    * Open the **`.Rproj`** file in RStudio (this automatically sets the correct working directory).
+    * Open and run `NCA_Analysis.R`.
 4.  **Outputs**: 
     * The script calculates sum scores for latent variables based on the column prefixes (PN, PC, TI, PCE, Age).
     * It performs 10,000 permutations for p-value calculation.
