@@ -17,10 +17,6 @@ library(NCA)
 set.seed(123)
 
 # ================== 2. Path Management ==================
-# Expected Repository Structure:
-# [Project Root]
-#  ├── DATA/ (Place 'latent_variable_scores.csv' here)
-#  └── NCA_Analysis.R
 
 input_file  <- "DATA/latent_variable_scores.csv" 
 output_dir  <- "OUTPUT/"
