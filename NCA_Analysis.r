@@ -140,7 +140,7 @@ sink()
 # Completion Message
 # ------------------------------------------------------------------------------
 message("---")
-message("Success! All NCA analysis tasks completed:")
+message("All NCA analysis tasks completed successfully!")
 message("1. Figures: 1200 DPI TIFF images (Panel A-H) generated.")
 message("2. Tables: Combined_Bottleneck_TI.csv and Combined_Bottleneck_PCE.csv created.")
 message("3. Report: NCA_Comprehensive_Summary.txt compiled with variable mappings.")
