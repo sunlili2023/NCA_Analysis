@@ -13,7 +13,7 @@ library(NCA)
 
 # Paths configuration
 input_file  <- "DATA/latent_variable_scores.csv" 
-output_dir  <- "NCA_Results"
+output_dir  <- "OUTPUTS"
 
 # Create output directory if it doesn't exist
 if (!dir.exists(output_dir)) dir.create(output_dir)
