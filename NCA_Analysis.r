@@ -2,43 +2,38 @@
 # Script Name: NCA_Analysis_Final.R
 # Project: Perceived Naturalness and Consumer Cognitive Engagement
 # Purpose: Perform NCA for PCE and TI, exporting 1200 DPI TIFF plots (A-H)
-#          and formatted bottleneck tables with 2-decimal precision (NN-safe).
+#          and formatted bottleneck tables.
 # ==============================================================================
 
-# ==============================================================================
-# 1. Environment Setup
-# ==============================================================================
-if (!require("dplyr")) install.packages("dplyr")
+# ------------------------------------------------------------------------------
+# 1. Environment Setup & Global Configuration
+# ------------------------------------------------------------------------------
 if (!require("NCA")) install.packages("NCA")
-
 library(NCA)
-library(dplyr)
 
-# Set seed for reproducibility of permutation tests
-set.seed(123)
+# Paths configuration
+input_file  <- "DATA/latent_variable_scores.csv" 
+output_dir  <- "NCA_Results"
 
-input_file <- "DATA/latent_variable_scores.csv"
-output_dir <- "OUTPUT"
-
-# Create output directory if it does not exist
+# Create output directory if it doesn't exist
 if (!dir.exists(output_dir)) dir.create(output_dir)
 
-# Load Dataset
-if (!file.exists(input_file)) {
-  stop("Input file not found! Please ensure 'latent_variable_scores.csv' is in the DATA/ folder.")
-}
-my_data <- read.csv(input_file)
+# Load Data
+if (!file.exists(input_file)) stop("Error: Data file not found in DATA folder.")
+data <- read.csv(input_file)
 
-# Configuration strictly following the Layout of Figure 5 (Panels A-H)
+# ------------------------------------------------------------------------------
+# 2. Analysis Task Definitions (Panels A-H)
+# ------------------------------------------------------------------------------
 analysis_tasks <- list(
-  list(id = "A", x = "PN",     y = "TI",  label = "Perceived Naturalness"),
-  list(id = "B", x = "PC",     y = "TI",  label = "Perceived Credibility"),
-  list(id = "C", x = "Age",    y = "TI",  label = "Age"),
-  list(id = "D", x = "PN",     y = "PCE", label = "Perceived Naturalness"),
-  list(id = "E", x = "PC",     y = "PCE", label = "Perceived Credibility"),
-  list(id = "F", x = "TI",     y = "PCE", label = "Taste Inference"),
-  list(id = "G", x = "Age",    y = "PCE", label = "Age"),
-  list(id = "H", x = "AgexTI", y = "PCE", label = expression(Age %*% Taste~Inference))
+  list(id = "A", x = "PN",     y = "TI",  label_x = "Perceived Naturalness"),
+  list(id = "B", x = "PC",     y = "TI",  label_x = "Perceived Credibility"),
+  list(id = "C", x = "Age",    y = "TI",  label_x = "Age"),
+  list(id = "D", x = "PN",     y = "PCE", label_x = "Perceived Naturalness"),
+  list(id = "E", x = "PC",     y = "PCE", label_x = "Perceived Credibility"),
+  list(id = "F", x = "TI",     y = "PCE", label_x = "Taste Inference"),
+  list(id = "G", x = "Age",    y = "PCE", label_x = "Age"),
+  list(id = "H", x = "AgexTI", y = "PCE", label_x = "Age * Taste Inference")
 )
 
 y_label_mapping <- list(
@@ -46,79 +41,107 @@ y_label_mapping <- list(
   "PCE" = "Product-related Cognitive Engagement"
 )
 
-# Store the original working directory
-original_wd <- getwd()
+# List to cache results for the summary report
+all_results <- list()
 
-# ==============================================================================
-# 2. Execution & Export Loop
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# 3. Core NCA Analysis & Plotting (1200 DPI TIFF)
+# ------------------------------------------------------------------------------
 for (task in analysis_tasks) {
-  message(sprintf("Processing Panel %s: %s -> %s", task$id, task$x, task$y))
+  t_id  <- task$id
+  x_var <- task$x
+  y_var <- task$y
+  x_lab <- task$label_x
+  y_lab <- y_label_mapping[[y_var]]
   
-  # 1. Perform NCA Analysis (Includes 10,000 permutations)
-  model <- nca_analysis(my_data, task$x, task$y, 
-                        ceilings = c('ols', 'ce_fdh', 'cr_fdh'), 
+  message(sprintf(">>> Processing Panel %s: %s -> %s", t_id, x_var, y_var))
+  
+  # Run NCA Analysis (10,000 Permutations)
+  model <- nca_analysis(data, x_var, y_var, 
+                        ceilings = c("ols", "ce_fdh", "cr_fdh"), 
                         test.rep = 10000)
   
-  # 2. Export High-Resolution TIFF Plot (1200 DPI)
-  plot_file <- file.path(original_wd, output_dir, paste0("Fig5", task$id, "_", task$x, "_", task$y, ".tiff"))
+  # Cache result
+  all_results[[t_id]] <- list(model = model, x = x_var, y = y_var, x_lab = x_lab, y_lab = y_lab)
   
-  tiff(
-    filename = plot_file,
-    width = 6, height = 6, units = "in", 
-    res = 1200, compression = "lzw"
-  )
-  
-  plot(
-    model,
-    xlab = task$label,
-    ylab = y_label_mapping[[task$y]],
-    main = paste0("Scatter Plot 5", task$id),
-    font.lab = 2,
-    add.on = "ols"
-  )
-  
+  # Export High-Resolution Plot
+  img_path <- file.path(output_dir, paste0("Fig5_", t_id, "_", x_var, "_vs_", y_var, ".tiff"))
+  tiff(img_path, width = 6, height = 6, units = "in", res = 1200, compression = "lzw")
+  par(mar = c(5, 5, 4, 2) + 0.1)
+  plot(model, x_var, y_var, 
+       add.on = "ols", 
+       font.lab = 2, 
+       xlab = x_lab, 
+       ylab = y_lab, 
+       main = paste0("Panel ", t_id))
   dev.off()
-  
-  # 3. Export Summary and Formatted Bottleneck Tables
-  # Switch to OUTPUT folder temporarily
-  setwd(file.path(original_wd, output_dir))
-  
-  # Export text summary
-  sink(paste0("Summary_Tab12", task$id, ".txt"))
-  nca_output(model, summaries = TRUE)
-  sink()
-  
-  # Process Bottleneck Tables (Rounding while handling "nn" values)
-  bn_list <- model$bottlenecks
-  for(line_name in names(bn_list)) {
-    bn_rounded <- as.data.frame(bn_list[[line_name]])
-    
-    # Loop through value columns (skipping the first column which is %)
-    for(col_idx in 2:ncol(bn_rounded)) {
-      # Suppress warnings when "nn" converts to NA
-      suppressWarnings({
-        # Force conversion to numeric to allow rounding
-        numeric_vals <- as.numeric(as.character(bn_rounded[, col_idx]))
-        # Round numeric values and put them back
-        bn_rounded[, col_idx] <- round(numeric_vals, 2)
-      })
-    }
-    
-    # Re-insert "nn" into NA spots to maintain the original NCA reporting style
-    bn_rounded[is.na(bn_rounded)] <- "nn"
-    
-    # Save formatted CSV
-    write.csv(bn_rounded, 
-              paste0("Bottleneck_Tab1314", task$id, "_", line_name, ".csv"), 
-              row.names = FALSE)
-  }
-  
-  # Return to root directory for next task
-  setwd(original_wd)
 }
 
-message("================================================================")
-message("All NCA analysis tasks completed successfully!")
-message("Results (TIFFs, Summaries, CSVs) saved in: ", output_dir)
-message("================================================================")
+# ------------------------------------------------------------------------------
+# 4. Export Combined Bottleneck Tables (Wide Format)
+# ------------------------------------------------------------------------------
+export_combined_bn <- function(dv_name, iv_names, file_name) {
+  combined_list <- list()
+  
+  for (m in c("ce_fdh", "cr_fdh")) {
+    group_df <- NULL
+    for (x in iv_names) {
+      # Extract bottleneck values for specific method
+      res <- nca_analysis(data, x, dv_name, ceilings = m)
+      bn <- as.data.frame(res$bottlenecks[[m]])
+      
+      if (is.null(group_df)) {
+        group_df <- bn
+        colnames(group_df)[2] <- paste0(x, "(", m, ")")
+      } else {
+        new_col <- bn[, 2, drop = FALSE]
+        colnames(new_col) <- paste0(x, "(", m, ")")
+        group_df <- cbind(group_df, new_col)
+      }
+    }
+    combined_list[[m]] <- group_df
+  }
+  
+  # Merge CE-FDH and CR-FDH columns
+  final_tab <- merge(combined_list[["ce_fdh"]], combined_list[["cr_fdh"]], 
+                     by = colnames(combined_list[["ce_fdh"]])[1], sort = FALSE)
+  write.csv(final_tab, file.path(output_dir, file_name), row.names = FALSE)
+}
+
+# Execute Export
+message(">>> Generating Combined Bottleneck Tables...")
+export_combined_bn("TI",  c("PN", "PC", "Age"), "Combined_Bottleneck_TI.csv")
+export_combined_bn("PCE", c("PN", "PC", "TI", "Age", "AgexTI"), "Combined_Bottleneck_PCE.csv")
+
+# ------------------------------------------------------------------------------
+# 5. Export Comprehensive Summary Report
+# ------------------------------------------------------------------------------
+summary_file <- file.path(output_dir, "NCA_Comprehensive_Summary.txt")
+sink(summary_file)
+
+cat("======================================================================\n")
+cat("            NCA ANALYSIS STATISTICAL SUMMARY (PANELS A-H)             \n")
+cat("            Generated Date:", as.character(Sys.time()), "             \n")
+cat("======================================================================\n\n")
+
+for (id in names(all_results)) {
+  item <- all_results[[id]]
+  cat("----------------------------------------------------------------------\n")
+  cat(sprintf("### PANEL %s SUMMARY ###\n", id))
+  cat(sprintf("Independent Variable (X): %s (%s)\n", item$x, item$x_lab))
+  cat(sprintf("Dependent Variable   (Y): %s (%s)\n", item$y, item$y_lab))
+  cat("----------------------------------------------------------------------\n")
+  nca_output(item$model, summaries = TRUE)
+  cat("\n\n")
+}
+sink()
+
+# ------------------------------------------------------------------------------
+# Completion Message
+# ------------------------------------------------------------------------------
+message("---")
+message("Success! All NCA analysis tasks completed:")
+message("1. Figures: 1200 DPI TIFF images (Panel A-H) generated.")
+message("2. Tables: Combined_Bottleneck_TI.csv and Combined_Bottleneck_PCE.csv created.")
+message("3. Report: NCA_Comprehensive_Summary.txt compiled with variable mappings.")
+message("Results saved in: ", normalizePath(output_dir))
